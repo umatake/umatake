@@ -478,12 +478,17 @@ void iterative_deepening(Position& pos, bool isMain) {
 
         if (!Stop) { bestMove = iterationBest; prevScore = best; }
 
+        // Report every depth. If Stop hit before this iteration produced any
+        // usable score, `best` is still -VALUE_INFINITE (which would render as a
+        // bogus "score mate 0"); fall back to the last completed score so the
+        // line stays coherent instead.
         if (isMain) {
             int64_t ms = elapsed_ms();
             uint64_t nds = total_nodes();
+            Value reportScore = (best > -VALUE_INFINITE) ? best : prevScore;
             std::string pv = extract_pv(pos, bestMove, depth);
             std::cout << "info depth " << depth
-                      << " score " << score_string(best)
+                      << " score " << score_string(reportScore)
                       << " nodes " << nds
                       << " nps " << (ms > 0 ? (uint64_t)(nds * 1000 / ms) : nds)
                       << " time " << ms

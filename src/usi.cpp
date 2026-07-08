@@ -2,6 +2,7 @@
 #include "position.h"
 #include "movegen.h"
 #include "search.h"
+#include "book.h"
 #include "tt.h"
 #include "bench.h"
 #include <iostream>
@@ -9,6 +10,7 @@
 #include <string>
 #include <deque>
 #include <thread>
+#include <vector>
 
 namespace {
 const char* STARTPOS = "lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1";
@@ -73,6 +75,7 @@ namespace {
 Position pos;
 std::deque<StateInfo> states;
 std::thread searchThread;
+std::vector<std::string> moveHistory; // USI moves played from the start position (for the book)
 
 void stop_search() {
     Search::Stop = true;
@@ -98,13 +101,34 @@ void position_cmd(std::istringstream& is) {
     states.emplace_back();
     pos.set(sfen, &states.back());
 
+    // The book is keyed on the line played from the initial position, so it only
+    // applies when the game actually started from startpos (not a custom sfen).
+    moveHistory.clear();
+    bool fromStart = (sfen == STARTPOS);
+
     if (token == "moves") {
         while (is >> token) {
             Move m = to_move(token);
             states.emplace_back();
             pos.do_move(m, states.back());
+            if (fromStart) moveHistory.push_back(token);
         }
     }
+    if (!fromStart) moveHistory.clear();
+}
+
+// Returns the book move for the current position if one exists and is legal,
+// else MOVE_NONE. The legality re-check is the safety net that guarantees a
+// stray book entry can never put an illegal move on the board.
+Move book_move() {
+    std::string bm = Book::probe(moveHistory);
+    if (bm.empty()) return MOVE_NONE;
+    Move m = to_move(bm);
+    if (m == MOVE_NONE) return MOVE_NONE;
+    MoveList legal(pos);
+    for (ExtMove* it = legal.begin(); it != legal.end(); ++it)
+        if (it->move == m) return m;
+    return MOVE_NONE;
 }
 
 void go_cmd(std::istringstream& is) {
@@ -124,6 +148,24 @@ void go_cmd(std::istringstream& is) {
         else if (token == "mate") { is >> token; }
     }
     stop_search();
+
+    // Try the opening book first. We never answer from book while pondering
+    // (the protocol forbids emitting "bestmove" until ponderhit/stop) or during
+    // an analysis-style search (infinite / fixed depth or nodes), so those still
+    // run a real search.
+    if (!lim.ponder && !lim.infinite && lim.depth == 0 && lim.nodes == 0) {
+        Move bm = book_move();
+        if (bm != MOVE_NONE) {
+            // Emit an info line so the GUI (and the user) always sees feedback,
+            // even when the reply comes straight from the opening book rather
+            // than a search.
+            std::cout << "info depth 0 score cp 0 pv " << move(bm)
+                      << " string book" << std::endl;
+            std::cout << "bestmove " << move(bm) << std::endl;
+            return;
+        }
+    }
+
     Search::Stop = false;
     searchThread = std::thread([lim]() { Search::think(pos, lim); });
 }

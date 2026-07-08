@@ -17,7 +17,16 @@ Umatake plays standard Shogi and speaks the [USI protocol](http://hgm.nubati.net
   - Mate-distance pruning and repetition (sennichite) detection
   - **Lazy SMP** multithreaded search
   - Pondering support
-- **Evaluation** — material, piece-square tables, mobility for long-range pieces, king-zone (safety) terms, and pieces in hand
+- **Evaluation** — material, piece-square tables, mobility for long-range pieces,
+  pieces in hand, and a set of strong-amateur positional terms:
+  - King-zone attack/defence (kiki) safety, scaled super-linearly with danger
+  - Castle (囲い) shelter — generals guarding the king and the pawn wall in front of it
+  - Drop pressure — the attacker's pieces in hand raise the defending king's danger
+  - Rook / lance open- and semi-open-file bonuses
+  - Side-to-move tempo
+- **Opening book** — a small built-in 定跡 book of standard static- and
+  ranging-rook lines; a book move is played instantly (and only after a legality
+  re-check), otherwise the engine searches normally
 
 ## Requirements
 
@@ -82,6 +91,7 @@ src/
   position.*    Board state, make/unmake, SFEN I/O
   movegen.*     Legal move generation
   evaluate.*    Static evaluation
+  book.*        Built-in opening book (定跡)
   search.*      Alpha-beta / PVS search (Lazy SMP)
   tt.*          Transposition table
   usi.*         USI protocol loop

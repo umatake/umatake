@@ -3,6 +3,7 @@
 #include "evaluate.h"
 #include "search.h"
 #include "usi.h"
+#include "book.h"
 #include "bench.h"
 #include "position.h"
 #include <string>
@@ -13,6 +14,7 @@ int main(int argc, char** argv) {
     Zobrist::init();
     Eval::init();
     Search::init();
+    Book::init();
 
     if (argc >= 2) {
         std::string cmd = argv[1];

@@ -18,7 +18,12 @@ check() { # <description> <pattern> <haystack-file>
 }
 
 OUT=$(mktemp)
-printf 'usi\nisready\nposition startpos\ngo depth 8\nquit\n' | "$ENGINE" > "$OUT" 2>&1
+# Keep stdin open after "go" so the (asynchronous) search actually has time to
+# run and emit its info/bestmove, exactly as a real USI GUI does — a GUI waits
+# for "bestmove" before sending anything else. Piping "quit" immediately would
+# instead abort the search before it produced any real output.
+{ printf 'usi\nisready\nposition startpos\ngo depth 8\n'; sleep 2; printf 'quit\n'; } \
+    | "$ENGINE" > "$OUT" 2>&1
 
 check "id name Umatake" "id name Umatake" "$OUT"
 check "usiok"           "^usiok"          "$OUT"
