@@ -1,0 +1,36 @@
+# Build artifacts
+*.o
+*.a
+*.so
+*.dylib
+*.d
+
+# Engine binaries (built via `make`)
+/umatake
+/umatake_phase1
+/umatake_debug
+
+# Debug / sanitizer output
+*.dSYM/
+core
+core.*
+
+# Python (scripts/selfplay.py)
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Self-play / test output
+*.log
+*.sfen
+*.pgn
+*.csv
+
+# Editor / OS
+.DS_Store
+*.swp
+*~
+.idea/
+.vscode/
+compile_commands.json
